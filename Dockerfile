@@ -15,4 +15,4 @@ ADD . /code
 EXPOSE 5000
 
 # Start python
-CMD ["python2", "dao-auto-scale.py"]
+CMD ["python2", "dao_auto_scale.py"]
