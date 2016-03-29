@@ -106,29 +106,29 @@ def auto_scaling(username, password, app_name, cpu=-1, memory=-1, scale_num_each
     app = daocloud.app(app_name, space)
     need_scale = False
     if (cpu > -1):
-        curret_cpu = 0
+        current_acpu = 0
         metric_cpu = daocloud.metric_cpu(app['app_id'], space)
 
         if (metric_cpu['cpu_usage'] and len(metric_cpu['cpu_usage']) > 1):
-            curret_cpu = float(metric_cpu['cpu_usage'][-1][1]) * 100
+            current_cpu = float(metric_cpu['cpu_usage'][-1][1]) * 100
         logger.debug('curret_cpu :%s', curret_cpu)
         if (curret_cpu*100 > cpu):
             need_scale = True
     if (memory > -1):
-        curret_memory = 0
+        current_memory = 0
         total_memory = int(app['cf_app_summary']['memory'])
         metric_mem = daocloud.metric_mem(app['app_id'], space)
         if (metric_mem['memory_usage'] and len(metric_mem['memory_usage']) > 1):
-            curret_memory = float(metric_mem['memory_usage'][-1][1]) / 1024.0 / 1024.0
-        logger.debug('total memory: %s   curret_memory :%s     use:%s%%', total_memory, curret_memory,
-                    curret_memory / total_memory * 100)
-        if (curret_memory / total_memory * 100 > memory):
+            current_memory = float(metric_mem['memory_usage'][-1][1]) / 1024.0 / 1024.0
+        logger.debug('total memory: %s   current_memory :%s     use:%s%%', total_memory, current_memory,
+                    current_memory / total_memory * 100)
+        if (current_memory / total_memory * 100 > memory):
             need_scale = True
     if need_scale:
-        curret_instance_type_int=int(app['instance_type'][0:-1])
-        if(scale_instance_type >1 and curret_instance_type_int<16):
-            logger.info('update app[%s] instance_type to:%s', app_name, str(curret_instance_type_int*scale_instance_type)+'x')
-            daocloud.app_update_instance_type(app['app_id'],str(curret_instance_type_int*scale_instance_type)+'x',space)
+        current_instance_type_int=int(app['instance_type'][0:-1])
+        if(scale_instance_type >1 and current_instance_type_int<16):
+            logger.info('update app[%s] instance_type to:%s', app_name, str(current_instance_type_int*scale_instance_type)+'x')
+            daocloud.app_update_instance_type(app['app_id'],str(current_instance_type_int*scale_instance_type)+'x',space)
 
         else:
             logger.info('app[%s] scalea to:%s', app_name, int(app['cf_app_summary']['instances']) + scale_num_each)
