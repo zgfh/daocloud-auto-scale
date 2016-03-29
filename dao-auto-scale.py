@@ -106,13 +106,13 @@ def auto_scaling(username, password, app_name, cpu=-1, memory=-1, scale_num_each
     app = daocloud.app(app_name, space)
     need_scale = False
     if (cpu > -1):
-        current_acpu = 0
+        current_cpu = 0
         metric_cpu = daocloud.metric_cpu(app['app_id'], space)
 
         if (metric_cpu['cpu_usage'] and len(metric_cpu['cpu_usage']) > 1):
             current_cpu = float(metric_cpu['cpu_usage'][-1][1]) * 100
-        logger.debug('curret_cpu :%s', curret_cpu)
-        if (curret_cpu*100 > cpu):
+        logger.debug('curret_cpu :%s', current_cpu)
+        if (current_cpu*100 > cpu):
             need_scale = True
     if (memory > -1):
         current_memory = 0
