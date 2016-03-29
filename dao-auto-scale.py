@@ -76,7 +76,7 @@ class Daocloud():
 
         metric_mem = requests.post(api_url + '/v1/apps/' + app_id + '/actions/scale',
                                    data=json.dumps({'instances': instances}), headers=headers).json();
-        logger.info('scale result json: %s', metric_mem)
+        #logger.info('scale result json: %s', metric_mem)
         return metric_mem
 
 
@@ -114,8 +114,15 @@ def auto_scaling(username, password, app_name, cpu=-1, memory=-1, scale_num_each
         if (curret_memory / total_memory * 100 > memory):
             need_scale = True
     if need_scale:
-        logger.info('app[%s] scalea to:%', app['app_id'], app['cf_app_summary']['instances'])
+        logger.info('app[%s] scalea to:%s', app_name, int(app['cf_app_summary']['instances']) + scale_num_each)
         daocloud.scale(app['app_id'], int(app['cf_app_summary']['instances']) + scale_num_each)
+        app_status='init'
+        while app_status != 'STAGED':
+            logger.info('wait to scale finish: app status :%s',app_status)
+            time.sleep(2)# 等待scale finish
+            app = daocloud.app(app_name, space)
+            app_status=app['cf_app_summary']['package_state']
+        logger.info('app[%s] scalea to:%s finish', app_name, app['cf_app_summary']['instances'])
 
 if __name__ == '__main__':
     while True:
