@@ -59,7 +59,16 @@ class Daocloud():
         metric_cpu = requests.get(api_url + '/v1/apps/' + app_id + '/metrics-cpu?period=hour', headers=headers).json();
         #logger.info('metric_cpu json: %s', metric_cpu)
         return metric_cpu
+    #升级一倍
+    def app_update_instance_type(self, app_id,instance_type, space=''):
+        headers = {'Authorization': self.__token__()}
+        if space and len(space) >= 1:
+            headers['UserNameSpace'] = space
 
+        result = requests.patch(api_url + '/v1/apps/' + app_id ,data=json.dumps({"metadata":{"instance_type":instance_type}}), headers=headers).json();
+
+        logger.info('app_update_instance_type result json: %s', result)
+        return result
     def metric_mem(self, app_id, space=''):
         headers = {'Authorization': self.__token__()}
         if space and len(space) >= 1:
@@ -84,12 +93,14 @@ class Daocloud():
 cpu  cpu百分比.默认:-1,不检测;
 mem  mem百分比.默认:-1,不检测;
 scale_num_each 每次扩展的个数.默认1
-
+scale_instance_type 是否先升级配置,默认2,默认会扩展两倍
 TODO 暂不支持 SR
 """
 
 
-def auto_scaling(username, password, app_name, cpu=-1, memory=-1, scale_num_each=1, space=''):
+def auto_scaling(username, password, app_name, cpu=-1, memory=-1, scale_num_each=1,scale_instance_type=2, space=''):
+    scale_instance_type=int(scale_instance_type)
+
     daocloud = Daocloud(username, password)
 
     app = daocloud.app(app_name, space)
@@ -114,17 +125,26 @@ def auto_scaling(username, password, app_name, cpu=-1, memory=-1, scale_num_each
         if (curret_memory / total_memory * 100 > memory):
             need_scale = True
     if need_scale:
-        logger.info('app[%s] scalea to:%s', app_name, int(app['cf_app_summary']['instances']) + scale_num_each)
-        daocloud.scale(app['app_id'], int(app['cf_app_summary']['instances']) + scale_num_each)
+        curret_instance_type_int=int(app['instance_type'][0:-1])
+        if(scale_instance_type >1 and curret_instance_type_int<16):
+            logger.info('update app[%s] instance_type to:%s', app_name, str(curret_instance_type_int*scale_instance_type)+'x')
+            daocloud.app_update_instance_type(app['app_id'],str(curret_instance_type_int*scale_instance_type)+'x',space)
+
+        else:
+            logger.info('app[%s] scalea to:%s', app_name, int(app['cf_app_summary']['instances']) + scale_num_each)
+            daocloud.scale(app['app_id'], int(app['cf_app_summary']['instances']) + scale_num_each)
+
         app_status='init'
         while app_status != 'STAGED':
             logger.info('wait to scale finish: app status :%s',app_status)
             time.sleep(2)# 等待scale finish
             app = daocloud.app(app_name, space)
             app_status=app['cf_app_summary']['package_state']
-        logger.info('app[%s] scalea to:%s finish', app_name, app['cf_app_summary']['instances'])
+        logger.info('app[%s] scalea to:%s [instance_type:%s] finish', app_name, app['cf_app_summary']['instances'],app['instance_type'])
 
 if __name__ == '__main__':
+
+
     while True:
-        auto_scaling(os.getenv('daocloud_username'), os.getenv('daocloud_password'), os.getenv('daocloud_appname'), os.getenv('daocloud_cpu_max','80'), os.getenv('daocloud_memory_max','40'), os.getenv('daocloud_scale_num_each','1'), space=os.getenv('daocloud_space',''))
+        auto_scaling(os.getenv('daocloud_username'), os.getenv('daocloud_password'), os.getenv('daocloud_appname'), os.getenv('daocloud_cpu_max','80'), os.getenv('daocloud_memory_max','40'), os.getenv('daocloud_scale_num_each','1'),os.getenv('daocloud_sinstance_type_num',2), space=os.getenv('daocloud_space',''))
         time.sleep(1)
