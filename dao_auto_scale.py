@@ -111,7 +111,7 @@ def auto_scaling(username, password, app_name, cpu=-1, memory=-1, scale_num_each
 
         if (metric_cpu['cpu_usage'] and len(metric_cpu['cpu_usage']) > 1):
             current_cpu = float(metric_cpu['cpu_usage'][-1][1]) * 100
-        logger.debug('curret_cpu :%s', current_cpu)
+        logger.debug('current_cpu :%s', current_cpu)
         if (current_cpu*100 > cpu):
             need_scale = True
     if (memory > -1):
