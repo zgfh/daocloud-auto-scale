@@ -99,6 +99,7 @@ TODO 暂不支持 SR
 
 
 def auto_scaling(username, password, app_name, cpu=-1, memory=-1, scale_num_each=1,scale_instance_type=2, space=''):
+    logger.debug("info app_name[%s] cpu[%s] memory[%s] scale_num_each[%s] scale_instance_type[%s] space[%s]",app_name,cpu,memory,scale_num_each,scale_instance_type,space)
     scale_instance_type=int(scale_instance_type)
 
     daocloud = Daocloud(username, password)
@@ -145,5 +146,5 @@ def auto_scaling(username, password, app_name, cpu=-1, memory=-1, scale_num_each
 if __name__ == '__main__':
 
     while True:
-        auto_scaling(os.getenv('daocloud_username'), os.getenv('daocloud_password'), os.getenv('daocloud_appname'), os.getenv('daocloud_cpu_max','80'), os.getenv('daocloud_memory_max','40'), os.getenv('daocloud_scale_num_each','1'),os.getenv('daocloud_sinstance_type_num',2), space=os.getenv('daocloud_space',''))
+        auto_scaling(os.getenv('daocloud_username'), os.getenv('daocloud_password'), os.getenv('daocloud_appname'), os.getenv('daocloud_cpu_max','80'), os.getenv('daocloud_memory_max','40'), os.getenv('daocloud_scale_num_each','1'),os.getenv('daocloud_instance_type_num',2), space=os.getenv('daocloud_space',''))
         time.sleep(1)
