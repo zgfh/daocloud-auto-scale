@@ -132,7 +132,7 @@ def auto_scaling(username, password, app_name, cpu=-1, memory=-1, scale_num_each
         if (metric_cpu['cpu_usage'] and len(metric_cpu['cpu_usage']) > 1):
             current_cpu = float(metric_cpu['cpu_usage'][-1][1]) * 100
         logger.debug('current_cpu :%s', current_cpu)
-        if (current_cpu * 100 > cpu):
+        if (float(current_cpu * 100 )> float(cpu)):
             need_scale = True
     if (memory > -1):
         current_memory = 0
@@ -142,7 +142,7 @@ def auto_scaling(username, password, app_name, cpu=-1, memory=-1, scale_num_each
             current_memory = float(metric_mem['memory_usage'][-1][1]) / 1024.0 / 1024.0
         logger.debug('total memory: %s   current_memory :%s     use:%s%%', total_memory, current_memory,
                      current_memory / total_memory * 100)
-        if (current_memory / total_memory * 100 > memory):
+        if (float(current_memory / total_memory * 100) >float( memory)):
             need_scale = True
     if need_scale:
         current_instance_type_int = int(app['instance_type'][0:-1])
