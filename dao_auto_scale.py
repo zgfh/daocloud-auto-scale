@@ -107,6 +107,30 @@ class Daocloud():
         # logger.info('scale result json: %s', metric_mem)
         return metric_mem
 
+    def check_cpu_mem_out(self,app_name,cpu=-1, memory=-1,space=''):
+        app =self.app(app_name,space)
+        need_scale=False
+        if (cpu > -1):
+            current_cpu = 0
+            metric_cpu = self.metric_cpu(app['app_id'], space)
+
+            if (metric_cpu['cpu_usage'] and len(metric_cpu['cpu_usage']) > 1):
+                current_cpu = float(metric_cpu['cpu_usage'][-1][1]) * 100
+            logger.debug('current_cpu :%s', current_cpu)
+            if (float(current_cpu * 100) > float(cpu)):
+                need_scale = True
+        if (memory > -1):
+            current_memory = 0
+            total_memory = int(app['cf_app_summary']['memory'])
+            metric_mem = self.metric_mem(app['app_id'], space)
+            if (metric_mem['memory_usage'] and len(metric_mem['memory_usage']) > 1):
+                current_memory = float(metric_mem['memory_usage'][-1][1]) / 1024.0 / 1024.0
+            logger.debug('total memory: %s   current_memory :%s     use:%s%%', total_memory, current_memory,
+                         current_memory / total_memory * 100)
+            if (float(current_memory / total_memory * 100) > float(memory)):
+                need_scale = True
+        return need_scale
+
 
 """
 cpu  cpu百分比.默认:-1,不检测;
@@ -125,27 +149,15 @@ def auto_scaling(username, password, app_name, cpu=-1, memory=-1, scale_num_each
 
     app = daocloud.app(app_name, space)
 
-    need_scale = False
-    if (cpu > -1):
-        current_cpu = 0
-        metric_cpu = daocloud.metric_cpu(app['app_id'], space)
+    need_scale = daocloud.check_cpu_mem_out(app_name,cpu,memory,space)
 
-        if (metric_cpu['cpu_usage'] and len(metric_cpu['cpu_usage']) > 1):
-            current_cpu = float(metric_cpu['cpu_usage'][-1][1]) * 100
-        logger.debug('current_cpu :%s', current_cpu)
-        if (float(current_cpu * 100) > float(cpu)):
-            need_scale = True
-    if (memory > -1):
-        current_memory = 0
-        total_memory = int(app['cf_app_summary']['memory'])
-        metric_mem = daocloud.metric_mem(app['app_id'], space)
-        if (metric_mem['memory_usage'] and len(metric_mem['memory_usage']) > 1):
-            current_memory = float(metric_mem['memory_usage'][-1][1]) / 1024.0 / 1024.0
-        logger.debug('total memory: %s   current_memory :%s     use:%s%%', total_memory, current_memory,
-                     current_memory / total_memory * 100)
-        if (float(current_memory / total_memory * 100) > float(memory)):
-            need_scale = True
     if need_scale:
+        for try_time in range(1,3):
+            logger.info('check cpu,mem: times: %s',try_time)
+            if(daocloud.check_cpu_mem_out(app_name,cpu,memory,space) is False):
+                logger.info("find cpu,mem do not need scale ")
+                return
+
         current_instance_type_int = int(app['instance_type'][0:-1])
         action_id = ''
         if (scale_instance_type > 1 and current_instance_type_int < 16):
@@ -170,6 +182,7 @@ def auto_scaling(username, password, app_name, cpu=-1, memory=-1, scale_num_each
             app_status = app['cf_app_summary']['package_state']
         logger.info('app[%s] scalea to:%s [instance_type:%s] finish', app_name, app['cf_app_summary']['instances'],
                     app['instance_type'])
+        logger.info('wait %ss after scale ...',int(os.getenv('daocloud_wait_time_after_scale', '10')))
 
 
 def auto_scaling_and_run(username, password, app_name, cpu=-1, memory=-1, scale_num_each=1, scale_instance_type=2,
@@ -177,12 +190,16 @@ def auto_scaling_and_run(username, password, app_name, cpu=-1, memory=-1, scale_
     logger.debug("info app_name[%s] cpu[%s] memory[%s] scale_num_each[%s] scale_instance_type[%s] space[%s]", app_name,
                  cpu, memory, scale_num_each, scale_instance_type, space)
     while True:
-        auto_scaling(username, password, app_name, cpu, memory, scale_num_each, scale_instance_type, space)
+        try:
+            auto_scaling(username, password, app_name, cpu, memory, scale_num_each, scale_instance_type, space)
+        except Exception ,e:
+            logger.info('scale run error:%s \n auto try again',e)
+            pass
         time.sleep(1)
 
 
 if __name__ == '__main__':
     auto_scaling_and_run(os.getenv('daocloud_username'), os.getenv('daocloud_password'), os.getenv('daocloud_appname'),
-                         os.getenv('daocloud_cpu_max', '80'), os.getenv('daocloud_memory_max', '40'),
+                         os.getenv('daocloud_cpu_max', '80'), os.getenv('daocloud_memory_max', '80'),
                          os.getenv('daocloud_scale_num_each', '1'), os.getenv('daocloud_instance_type_num', 2),
                          space=os.getenv('daocloud_space', ''))
