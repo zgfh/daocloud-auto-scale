@@ -169,7 +169,7 @@ def auto_scaling(username, password, app_name, cpu=-1, memory=-1, scale_num_each
                                                   space)['action_id']
 
         else:
-            if int(app['cf_app_summary']['instances']) + scale_num_each<= os.getenv('daocloud_max_scale_num',10):
+            if int(app['cf_app_summary']['instances']) + scale_num_each <= int(os.getenv('daocloud_max_scale_num',10)):
                 logger.info('app[%s] scalea to:%s', app_name, str(int(app['cf_app_summary']['instances']) + scale_num_each))
                 action_id = daocloud.scale(app['app_id'], int(app['cf_app_summary']['instances']) + scale_num_each, space)[
                     'action_id']
